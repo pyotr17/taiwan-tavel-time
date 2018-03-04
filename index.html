@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>旅行時間｜步行、單車、開車時間@TAIWAN</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="js/jquery.min.js"></script>
+  <script src="leaflet/leaflet.js"></script>
+  <link rel="stylesheet" href="leaflet/leaflet.css" />
+  <link rel="stylesheet" href="css/L.Control.Zoominfo.css" />
+  <script src="js/L.Control.Zoominfo.js" ></script>
+  <script src="js/latest.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-geosearch@2.6.0/assets/css/leaflet.css">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+	
+  <style>
+    html, body {width: 100%; height: 100%; margin: 0}
+    #map1, #map2 {width: 50%; height: 100%; float:left;}
+    .my-legend {
+      position: absolute;
+      right:  0px;
+      bottom: 0px;
+      height: 63px;
+      width:  140px;
+      z-index: 1;
+      background: #fff;
+      opacity: 0.8;
+      margin: 25px 10px;
+      border-radius:5px;
+      font-family: Microsoft JhengHei;
+      font-size: 12px;
+      font-weight: bold;
+      text-align: center;
+      box-shadow: 2px 2px 10px grey;
+    }
+    .legend-title {
+      padding: 5px 5px 5px;
+    }
+    .legend-scale ul {
+       margin: 0px;
+       padding: 0px 7.5px;
+       float: left;
+       list-style: none;
+    }
+    .legend-scale ul li {
+       display: block;
+       float: left;
+       width: 40px;
+       text-align: center;
+       font-size: 12px;
+    }
+    li span {
+       display: block;
+       float: left;
+       height: 15px;
+       width: 50px;
+    }
+
+	  .button-group {
+      position: absolute; right: 10px; top: 10px; z-index: 1000;
+      box-shadow: 0 1px 5px rgba(0,0,0,.4); background-color: rgba(255,255,255,1); 
+    }
+    .button {
+      font-family: sans-serif; text-transform: uppercase;
+      color: #666; cursor: pointer; padding: 10px; display: inline-block;
+    }
+    .button:hover { background-color: #EEE; }
+    .button.active { color: #08519c; }
+  </style>
+</head>
+
+<body>
+  <div id="map1" style="z-index: 0"></div>
+  <div id="map2" style="z-index: 0"></div>
+
+  <div id="selectionBar" class="button-group">
+    <div id="btn-walk" onclick="changeMode(&apos;walk&apos;)" class="button active"><i class="material-icons">directions_walk</i></div>
+    <div id="btn-bike" onclick="changeMode(&apos;bike&apos;)" class="button"><i class="material-icons">directions_bike</i></div>
+    <div id="btn-car"  onclick="changeMode(&apos;car&apos;)"  class="button"><i class="material-icons">directions_car</i></div>
+  </div>
+  
+  <script>
+    var travelMode = 'walk';
+    var latlon = [25.0469393,121.5166788];
+    var map1 = L.map('map1', {zoominfoControl: true, zoomControl: false}).setView(latlon, 14);
+
+    // initialise the base map
+    r360.basemap({ style: 'basic', apikey: 'V4VX10KRBZE2TS3LMEQHMPU',minZoom: 7 }).addTo(map1);
+
+    // create a source and a two target markers and add them to the map
+    var sourceMarker = L.marker(latlon, { draggable: true }).addTo(map1);
+
+    // create the layer to add the polygons
+    var polygonLayer = r360.leafletPolygonLayer().addTo(map1);
+    polygonLayer.opacity = .5;
+    polygonLayer.setColors([
+          { 'time': 600, 'color': '#08519c' },
+          { 'time':1200, 'color': '#3182bd' },
+          { 'time':1800, 'color': '#6baed6' },
+    ]);
+
+    // helper function to encapsulate the show polygon action
+    var showPolygons = function() {
+      var travelOptions = r360.travelOptions();
+      // add the predefined source to the map
+      travelOptions.addSource(sourceMarker);
+      // add some travel time values
+      travelOptions.setTravelTimes([600, 1200, 1800]);
+      // set inital travel time
+      travelOptions.setTravelType(travelMode);
+      // set the service API-key
+      travelOptions.setServiceKey('V4VX10KRBZE2TS3LMEQHMPU');
+      // set the service url for your area
+      travelOptions.setServiceUrl('https://service.route360.net/taiwan/');
+
+      // call the service
+      r360.PolygonService.getTravelTimePolygons(travelOptions, function(polygons) {
+        // in case there are already polygons on the map/layer clear them
+        polygonLayer.clearAndAddLayers(polygons, true);
+      });
+    };
+
+    // call the helper function to display polygons with initial value
+    showPolygons();
+    // re-run the polygons when we move a marker
+    sourceMarker.on('dragend', function(){ showPolygons(true); });
+
+    // change polygons on button click
+    var changeMode = function(value) {
+      travelMode = value;
+      $("#selectionBar .active").removeClass('active');
+      $("#btn-"+value).addClass('active');
+      showPolygons();
+      showPolygons2();
+    }
+
+  </script>
+
+
+
+  <script>
+    var latlon2 = [22.9972517,120.2118538];
+    var map2 = L.map('map2', {zoominfoControl: true, zoomControl: false}).setView(latlon2, 14);
+    map2.attributionControl.addAttribution("<a href='https://navitia.opendatasoft.com/explore/dataset/us-or/table/' target='_blank'>GTFS Data</a>");
+
+    // initialise the base map
+    r360.basemap({ style: 'basic', apikey: 'V4VX10KRBZE2TS3LMEQHMPU',minZoom: 7 }).addTo(map2);
+
+    // create a source and a two target markers and add them to the map
+    var sourceMarker2 = L.marker(latlon2, { draggable: true }).addTo(map2);
+
+    // create the layer to add the polygons
+    var polygonLayer2 = r360.leafletPolygonLayer().addTo(map2);
+    polygonLayer2.opacity = .5;
+    polygonLayer2.setColors([
+          { 'time': 600, 'color': '#08519c' },
+          { 'time':1200, 'color': '#3182bd' },
+          { 'time':1800, 'color': '#6baed6' },
+    ]);
+
+    // helper function to encapsulate the show polygon action
+    var showPolygons2 = function() {
+      var travelOptions = r360.travelOptions();
+      // add the predefined source to the map
+      travelOptions.addSource(sourceMarker2);
+      // add some travel time values
+      travelOptions.setTravelTimes([600, 1200, 1800]);
+      // set inital travel time
+      travelOptions.setTravelType(travelMode);
+      // set the service API-key
+      travelOptions.setServiceKey('V4VX10KRBZE2TS3LMEQHMPU');
+      // set the service url for your area
+      travelOptions.setServiceUrl('https://service.route360.net/taiwan/');
+
+      // call the service
+      r360.PolygonService.getTravelTimePolygons(travelOptions, function(polygons) {
+        // in case there are already polygons on the map/layer clear them
+        polygonLayer2.clearAndAddLayers(polygons, true);
+      });
+    };
+
+    // call the helper function to display polygons with initial value
+    showPolygons2();
+    // re-run the polygons when we move a marker
+    sourceMarker2.on('dragend', function(){ showPolygons2(true); });
+
+  </script>
+
+  <div class='my-legend'>
+    <div class='legend-title'>旅行時間 (分鐘)</div>
+    <div class='legend-scale'>
+      <ul class='legend-labels'>
+        <li><span style='background:#08519c;'></span>10</li>
+        <li><span style='background:#3182bd;'></span>20</li>
+        <li><span style='background:#6baed6;'></span>30</li>
+      </ul>
+    </div>
+  </div>
+
+</body>
+</html>
